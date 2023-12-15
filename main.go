@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -14,10 +15,19 @@ func main() {
 	if len(port) == 0 {
 		port = "4000"
 	}
-	log.Println(port)
-	/* if err != nil {
-	        log.Fatalln("error loading .env file: ", err)
-		} */
 
-	/* listener := net.Listen("tcp", address string) */
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		log.Fatalf("listening on %s failed: %s", listener.Addr(), err)
+	}
+	log.Println("listening on ", listener.Addr())
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Println("accept connection failed", err)
+			continue
+		}
+		go HandleClient(conn)
+	}
 }

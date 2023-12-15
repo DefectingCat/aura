@@ -1,4 +1,4 @@
-module rua.plus/aura
+module git.rua.plus/aura
 
 go 1.20
 
