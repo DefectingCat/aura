@@ -22,12 +22,15 @@ func main() {
 	}
 	log.Println("listening on ", listener.Addr())
 
+	clientCh := make(chan ClientMessage)
+	go HandleServer(clientCh)
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Println("accept connection failed", err)
 			continue
 		}
-		go HandleClient(conn)
+		go HandleClient(conn, clientCh)
 	}
 }
