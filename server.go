@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 )
 
 func HandleServer(clientCh <-chan ClientMessage) {
@@ -17,10 +18,12 @@ func HandleServer(clientCh <-chan ClientMessage) {
 				if k == clientKey {
 					continue
 				}
-				_, err := v.conn.Write(clientMsg.message)
-				if err != nil {
-					log.Println("write message to client failed ", err)
-				}
+				go func(conn net.Conn, msg []byte) {
+					_, err := conn.Write(msg)
+					if err != nil {
+						log.Println("write message to client failed ", err)
+					}
+				}(v.conn, clientMsg.message)
 			}
 		case Disconnected:
 			delete(clients, clientKey)

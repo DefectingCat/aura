@@ -24,6 +24,9 @@ type ClientMessage struct {
 	message []byte
 }
 
+// Hanlde user tcp connection.
+// Each connection will be send to server goroutine.
+// Will receive data from client and send to server goroutine.
 func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 	addr := conn.RemoteAddr()
 	log.Println("accpeted client from ", addr)
@@ -36,12 +39,14 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 		addr,
 		conn,
 	}
+	// register client to server
 	clientCh <- ClientMessage{
 		msgType: Connected,
 		client:  client,
 		message: []byte{},
 	}
 
+	// receive data from client
 	buffer := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buffer)
@@ -59,6 +64,7 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 				return
 			}
 		}
+		// TODO handle ctrl c in telnet
 		if n < 3 {
 			continue
 		} else {
