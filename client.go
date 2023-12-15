@@ -1,14 +1,16 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net"
 )
 
-type ConnectType int
+type MessageType int
 
 const (
-	Connected ConnectType = iota
+	Connected MessageType = iota
+	Message
 	Disconnected
 )
 
@@ -17,8 +19,9 @@ type Client struct {
 	conn net.Conn
 }
 type ClientMessage struct {
-	msgType ConnectType
+	msgType MessageType
 	client  Client
+	message []byte
 }
 
 func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
@@ -36,19 +39,35 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 	clientCh <- ClientMessage{
 		msgType: Connected,
 		client:  client,
+		message: []byte{},
 	}
 
 	buffer := make([]byte, 1024)
 	for {
 		n, err := conn.Read(buffer)
 		if err != nil {
-			log.Printf("receive data failed %s from %s\n", err, addr)
-			return
+			if err == io.EOF {
+				log.Printf("client %s disconnected", addr)
+				clientCh <- ClientMessage{
+					msgType: Disconnected,
+					client:  client,
+					message: []byte{},
+				}
+				return
+			} else {
+				log.Printf("receive data failed %s from %s\n", err, addr)
+				return
+			}
 		}
 		if n < 3 {
 			continue
 		} else {
 			log.Printf("[%s]: %s", addr, string(buffer[:n]))
+			clientCh <- ClientMessage{
+				msgType: Message,
+				client:  client,
+				message: buffer[:n],
+			}
 			clear(buffer)
 		}
 	}
