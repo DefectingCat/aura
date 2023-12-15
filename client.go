@@ -62,13 +62,13 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 		if n < 3 {
 			continue
 		} else {
-			log.Printf("[%s]: %s", addr, string(buffer[:n]))
+			message := buffer[:n]
+			log.Printf("[%s]: %s", addr, string(message))
 			clientCh <- ClientMessage{
 				msgType: Message,
 				client:  client,
-				message: buffer[:n],
+				message: message,
 			}
-			clear(buffer)
 		}
 	}
 }
