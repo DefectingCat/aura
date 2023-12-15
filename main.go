@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	godotenv.Load(".env")
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Printf("not found .env file")
+	}
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {

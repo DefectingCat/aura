@@ -24,16 +24,25 @@ type ClientMessage struct {
 	message []byte
 }
 
-// Hanlde user tcp connection.
-// Each connection will be send to server goroutine.
+// HandleClient handle user tcp connection.
+// Each connection will be sent to server goroutine.
 // Will receive data from client and send to server goroutine.
 func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 	addr := conn.RemoteAddr()
-	log.Println("accpeted client from ", addr)
-	defer conn.Close()
+	log.Println("accepted client from ", addr)
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Printf("close client connection failed %s", err)
+		}
+	}(conn)
 
 	// send a welcome message
-	conn.Write([]byte("Genshin impact, Launch!\n"))
+	_, err := conn.Write([]byte("Genshin impact, Launch!\n"))
+	if err != nil {
+		log.Printf("write welcome message to client failed %s", err)
+		return
+	}
 
 	client := Client{
 		addr,
