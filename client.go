@@ -4,9 +4,12 @@ import (
 	"io"
 	"log"
 	"net"
+	"reflect"
 )
 
 type MessageType int
+
+var CTRL_C = []byte{255, 244, 255, 253, 6}
 
 const (
 	Connected MessageType = iota
@@ -73,11 +76,14 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 				return
 			}
 		}
-		// TODO handle ctrl c in telnet
 		if n < 3 {
 			continue
 		} else {
 			message := buffer[:n]
+			isCtrlc := reflect.DeepEqual(CTRL_C, message)
+			if isCtrlc {
+				continue
+			}
 			log.Printf("[%s]: %s", addr, string(message))
 			clientCh <- ClientMessage{
 				msgType: Message,
