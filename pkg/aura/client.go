@@ -1,24 +1,36 @@
 package aura
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net"
 	"reflect"
+	"strings"
 )
+
+// Command enums
+const (
+	Nickname = "/nickname"
+)
+
+// Ctrl c signal in uinx system telnet client
+var CTRL_C = []byte{255, 244, 255, 253, 6}
 
 type MessageType int
 
-var CTRL_C = []byte{255, 244, 255, 253, 6}
-
+// Client message enum
 const (
 	Connected MessageType = iota
 	Message
 	Disconnected
 )
 
+// The client
 type Client struct {
+	// Client address
 	addr net.Addr
+	// Client connection
 	conn net.Conn
 }
 type ClientMessage struct {
@@ -84,7 +96,14 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 			if isCtrlc {
 				continue
 			}
-			log.Printf("[%s]: %s", addr, string(message))
+			msg := string(message)
+			if isCommand(&msg) {
+				if err := parseCommand(&msg); err != nil {
+					log.Println(err)
+				}
+				continue
+			}
+			log.Printf("[%s]: %s", addr, msg)
 			clientCh <- ClientMessage{
 				msgType: Message,
 				client:  client,
@@ -92,4 +111,19 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 			}
 		}
 	}
+}
+
+func isCommand(msg *string) bool {
+	return strings.HasPrefix(*msg, "/")
+}
+
+func parseCommand(msg *string) error {
+	commands := strings.Fields(*msg)
+	if len(commands) <= 1 {
+		return errors.New("comand: empty command " + commands[0])
+	}
+	command := commands[0]
+	arg := commands[1]
+	log.Println("get command ", command, arg)
+	return nil
 }
