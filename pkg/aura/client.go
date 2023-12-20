@@ -2,6 +2,7 @@ package aura
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -31,7 +32,8 @@ type Client struct {
 	// Client address
 	addr net.Addr
 	// Client connection
-	conn net.Conn
+	conn     net.Conn
+	nickname string
 }
 type ClientMessage struct {
 	msgType MessageType
@@ -60,8 +62,9 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 	}
 
 	client := Client{
-		addr,
-		conn,
+		addr:     addr,
+		conn:     conn,
+		nickname: "anonymous",
 	}
 	// register client to server
 	clientCh <- ClientMessage{
@@ -98,16 +101,17 @@ func HandleClient(conn net.Conn, clientCh chan<- ClientMessage) {
 			}
 			msg := string(message)
 			if isCommand(&msg) {
-				if err := parseCommand(&msg); err != nil {
+				if err := parseCommand(&msg, &client); err != nil {
 					log.Println(err)
 				}
 				continue
 			}
-			log.Printf("[%s]: %s", addr, msg)
+			sendMsg := append([]byte(fmt.Sprintf("[%s] ", client.nickname)), msg...)
+			log.Printf("[%s]: %s", addr, sendMsg)
 			clientCh <- ClientMessage{
 				msgType: Message,
 				client:  client,
-				message: message,
+				message: sendMsg,
 			}
 		}
 	}
@@ -117,13 +121,17 @@ func isCommand(msg *string) bool {
 	return strings.HasPrefix(*msg, "/")
 }
 
-func parseCommand(msg *string) error {
+func parseCommand(msg *string, client *Client) error {
 	commands := strings.Fields(*msg)
 	if len(commands) <= 1 {
 		return errors.New("comand: empty command " + commands[0])
 	}
 	command := commands[0]
 	arg := commands[1]
-	log.Println("get command ", command, arg)
+	switch strings.ToLower(command) {
+	case Nickname:
+		*&client.nickname = strings.TrimSpace(arg)
+	}
+	log.Printf("[server] client [%s] run command %s with %s", client.addr, command, arg)
 	return nil
 }
